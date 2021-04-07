@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+  <style>
+
+label{
+  padding: 5px;
+}
+.node,p{
+  -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Old versions of Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome, Edge, Opera and Firefox */
+}
+
+.node{
+    cursor: grab;
+}
+.node:focus-within{
+    cursor: grabbing;
+}
+
+
+
+</style>
+
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+
+
+  <script>
+     /******************************************************************JAVASCRIPT******************************************************************/
+
+     $(document).ready(function() {
+
+
+vertixRadius = 25;
+spacingRadius = 280;
+IgnoreNumberOfEdges = true;
+type = "custom";
+t = 0;
+zindx = 2;
+
+$("[value='wheel']").click(function() {
+    type = "wheel";
+});
+$("[value='cycle']").click(function() {
+    type = "cycle";
+});
+$("[value='complete']").click(function() {
+    type = "complete";
+});
+$("[value='tree']").click(function() {
+    type = "tree";
+});
+$("[value='custom']").click(function() {
+    type = "custom";
+});
+$("#IgnoreNumberOfEdges").click(function() {
+    if (IgnoreNumberOfEdges) {
+        IgnoreNumberOfEdges = false;
+    } else {
+        IgnoreNumberOfEdges = true;
+
+    }
+    console.log("ignore edges is now " + IgnoreNumberOfEdges);
+});
+$("textarea").click(function() {
+    type = "custom";
+    document.getElementById("custom").checked = true;
+});
+
+
+$("[name=vertixRadius],[name=spacingRadius]").change(function() {
+    vertixRadius = $("[name=vertixRadius]").val() * 1;
+    $("[name=spacingRadius]").attr('max', 390 - vertixRadius);
+    spacingRadius = $("[name=spacingRadius]").val() * 1;
+    //console.log($("[name=vertixRadius]"));
+
+    var nodes = document.getElementsByClassName("node");
+    var par = document.getElementsByTagName("p");
+
+    for (var i = 0; i < nodes.length; i++) {
+        par[i].style.marginTop = vertixRadius - 15 + "px";
+        nodes[i].style.width = vertixRadius * 2 + "px";
+        nodes[i].style.height = vertixRadius * 2 + "px";
+
+        t = (360 / n) * i - 90;
+        if (type == "wheel") {
+            t = (360 / (n - 1)) * i - 90;
+        }
+        //   console.log(nodes[i].style.left.substr(0,nodes[i].style.left.length-2));
+        //   nodes[i].style.left= (nodes[i].style.left.substr(0,nodes[i].style.left.length-2)*1+vertixRadius-1)+"px";
+        //   nodes[i].style.top= (nodes[i].style.top.substr(0,nodes[i].style.top.length-2)*1+vertixRadius-1)+"px";
+
+        nodes[i].style.left = (spacingRadius * Math.cos(t * Math.PI / 180) + 400 - vertixRadius + "px");
+        nodes[i].style.top = (spacingRadius * Math.sin(t * Math.PI / 180) + 400 - vertixRadius + "px");
+        // console.log(nodes[i].style.top);
+        if (i == n - 1 && type == "wheel") {
+            nodes[i].style.left = 400 - vertixRadius + "px";
+            nodes[i].style.top = 400 - vertixRadius + "px";
+        }
+    }
+    connectNodes();
+
+    if (!isDirected) {
+        marker = '<marker id="arrowhead" markerWidth="7" markerHeight="7" refX="' + (vertixRadius) + '" refY="3.5" orient="auto">  <polygon points="0 0, 7 3.5, 0 7" /></marker>';
+        document.getElementsByTagName("defs")[0].innerHTML = marker;
+    }
+
+});
+
+var n = 1;
+var m = 0;
+
+function buildAdj() {
+    adj = [];
+    var inptext = document.getElementsByTagName("textarea")[0].value.trim().split('\n');
+
+    document.getElementById("Canvos").innerHTML = '  <defs>' + marker + '</defs> ';
+    n = inptext[0].split(' ')[0];
+
+    if (type == "complete") {
+        m = (n * (n - 1)) / 2;
+        for (var i = 0; i < n; i++) {
+            for (var j = i + 1; j < n; j++) {
+                adj.push(i + ',' + j);
+            }
+        }
+    } else if (type == "cycle") {
+        console.log([m, n]);
+        m = n;
+        for (var i = 0; i < n; i++) {
+            adj.push(i % n + ',' + (i + 1) % n);
+        }
+    } else if (type == "wheel") {
+
+        for (var i = 0; i < n; i++) {
+            adj.push(i % n + ',' + (i + 1) % n);
+        }
+        for (var i = 0; i < n; i++) {
+            adj.push(i + ',' + n * 1);
+        }
+        m = 2 * n;
+    } else {
+        n = inptext[0].split(' ')[0];
+        if (type == "tree") {
+            m = n - 1;
+        } else {
+            if (IgnoreNumberOfEdges) {
+                m = inptext.length;
+                // console.log("testeeeee");
+            } else {
+                m = inptext[0].split(' ')[1];
+            }
+        }
+
+        for (var i = 1; i <= m; i++) {
+            try {
+
+                adj.push(inptext[i].split(' ')[0] * 1 + ',' + inptext[i].split(' ')[1] * 1);
+            } catch {
+                if (!IgnoreNumberOfEdges)
+                    console.log("m is larger than provided edges")
+            }
+        }
+
+        m = adj.length;
+
+
+    }
+    //  if(type!="custom"){
+    document.getElementsByTagName("textarea")[0].value = "";
+    document.getElementsByTagName("textarea")[0].value = n + " " + m + '\n';
+    for (var i = 0; i < adj.length; i++) {
+
+        document.getElementsByTagName("textarea")[0].value += adj[i].split(',')[0] + " " + adj[i].split(',')[1] + '\n';
+    }
+    //  }
+    console.log(adj);
+}
+
+
+
+
+var adj = [, ];
+
+var isDirected = 1;
+var isNumerical = 1;
+
+var marker = '<marker id="arrowhead" markerWidth="0" markerHeight="7" refX="0" refY="3.5" orient="auto">  <polygon points="0 0, 10 3.5, 0 7" /></marker>';
+$("#DirectedEdges").click(function() {
+    if (isDirected) {
+        marker = '<marker id="arrowhead" markerWidth="7" markerHeight="7" refX="' + (vertixRadius) + '" refY="3.5" orient="auto">  <polygon points="0 0, 7 3.5, 0 7" /></marker>';
+        document.getElementsByTagName("defs")[0].innerHTML = marker;
+    } else {
+        marker = '<marker id="arrowhead" markerWidth="0" markerHeight="7" refX="0" refY="3.5" orient="auto">  <polygon points="0 0, 10 3.5, 0 7" /></marker>';
+        document.getElementsByTagName("defs")[0].innerHTML = marker;
+    }
+    isDirected ^= 1;
+});
+
+var NumericalOffset = 0;
+
+$("#NumericalIndexing").click(function() {
+    if (isNumerical) {
+        var nodes = document.getElementsByTagName("p");
+        for (var i = 0; i < nodes.length; i++) {
+            var c = nodes[i].innerText.charCodeAt(0);
+            nodes[i].innerText = String.fromCharCode(c * 1 + 17);
+        }
+        NumericalOffset = 17;
+    } else {
+        var nodes = document.getElementsByTagName("p");
+        for (var i = 0; i < nodes.length; i++) {
+            var c = nodes[i].innerText.charCodeAt(0);
+            nodes[i].innerText = String.fromCharCode(c * 1 - 17);
+        }
+        NumericalOffset = 0;
+    }
+    isNumerical ^= 1;
+});
+
+
+
+$("[value='Create Graph']").click(function() {
+
+
+    buildAdj();
+    document.getElementById("container").innerHTML = "";
+    if (type == "wheel") n++;
+    for (var i = 0; i < n; i++) {
+
+        var node = document.createElement("div");
+        node.style.position = "absolute";
+        t = (360 / n) * i - 90;
+
+        if (type == "wheel") t = (360 / (n - 1)) * i - 90;
+
+
+        node.style.left = (spacingRadius * Math.cos(t * Math.PI / 180) + 400 - vertixRadius) + "px";
+        node.style.top = (spacingRadius * Math.sin(t * Math.PI / 180) + 400 - vertixRadius) + "px";
+        node.style.width = 2 * vertixRadius + "px";
+        node.style.height = 2 * vertixRadius + "px";
+        node.style.background = "lightgrey";
+        node.style.color = "black";
+        //node.innerHTML="<p>"+String.fromCharCode((i+"").charCodeAt(0)*1+NumericalOffset)+"</p>";
+        node.innerHTML = "<p style='margin-top:" + (vertixRadius - 15) + "px'>" + i + "</p>";
+
+        node.style.textAlign = "center";
+        node.style.borderRadius = "100%";
+        node.style.border = "2px solid black";
+        // node.style.opacity="60%";
+        node.className = "node";
+        node.style.padding = 0;
+
+        node.id = "Div" + i;
+
+        // node.style.left = (Math.random() * 700) + 1+"px";
+        // node.style.top = (Math.random() * 700) + 1+"px";
+        if (type == "wheel" && i == n - 1) {
+            node.style.left = (400 - vertixRadius) + "px";
+            node.style.top = (400 - vertixRadius) + "px";
+        }
+        document.getElementById("container").appendChild(node);
+
+    }
+    if (type == "tree") {
+
+    }
+
+
+    for (var i = 0; i < m; i++) {
+
+        document.getElementById("Canvos").innerHTML += '<path class=edge id="' + adj[i].split(',')[0] + ' ' + adj[i].split(',')[1] + '" d="M 0 0 q 0 0 0 0" stroke="black" stroke-width="1.5" fill="transparent" marker-end="url(#arrowhead)"/>';
+    }
+
+
+
+    connectNodes();
+});
+
+var mousePosition;
+var offset = [0, 0];
+var isDown = false;
+
+connectNodes();
+
+function connectNodes() {
+
+    var Edge = document.getElementsByTagName("path");
+    for (var i = 0; i < Edge.length; i++) {
+
+        var x1 = 0;
+        var y1 = 0;
+        var x2 = 0;
+        var y2 = 0;
+        undefinedEdges = "";
+        loopEdges = "";
+        for (var i = 0; i < Edge.length; i++) {
+            try {
+                if (Edge[i].id.split(' ')[0] == Edge[i].id.split(' ')[1]) {
+                    loopEdges += "Edge " + Edge[i].id.split(' ')[0] + " -> " + Edge[i].id.split(' ')[1]
+                    continue;
+                }
+
+
+                var nodeOne = document.getElementById("Div" + Edge[i].id.split(' ')[0]);
+                var nodeTwo = document.getElementById("Div" + Edge[i].id.split(' ')[1]);
+
+                x1 = nodeOne.style.left.substr(0, nodeOne.style.left.length - 2);
+                y1 = nodeOne.style.top.substr(0, nodeOne.style.top.length - 2);
+                x2 = nodeTwo.style.left.substr(0, nodeTwo.style.left.length - 2);
+                y2 = nodeTwo.style.top.substr(0, nodeTwo.style.top.length - 2);
+                x1 = x1 * 1 + vertixRadius - 1;
+                x2 = x2 * 1 + vertixRadius - 1;
+                y1 = y1 * 1 + vertixRadius - 1;
+                y2 = y2 * 1 + vertixRadius - 1;
+
+                var a = x2 - x1;
+                var b = y2 - y1;
+                var t = Math.sqrt((a * a) + (b * b));
+                var u = t / 10;
+
+                var multiEdge = false;
+                if (adj.indexOf(Edge[i].id.split(' ')[1] + "," + Edge[i].id.split(' ')[0]) != -1) {
+
+                    multiEdge = true;
+                    u = t / 8;
+                }
+
+                if (adj.indexOf(Edge[i].id.split(' ')[0] + "," + Edge[i].id.split(' ')[1], i + 1) != -1) {
+
+                    multiEdge = true;
+                    u = t / 3;
+                }
+                var q = Math.sqrt((u * u) + ((t / 2) * (t / 2)));
+                var theta = Math.atan(u / (t / 2));
+                var alpha = Math.atan(b / a);
+                var beta = theta - alpha;
+
+                if (!multiEdge) {
+                    q = 0;
+
+                }
+                var j = q * Math.cos(beta);
+                var k = q * Math.sin(beta);
+
+                if (a >= 0) k *= -1;
+
+                if (b >= 0) j *= -1;
+
+                if (a >= 0 && b >= 0) {
+                    j *= -1;
+                }
+
+                if (a < 0 && b < 0) {
+                    j *= -1;
+                }
+                Edge[i].setAttribute("d", "M " + x1 + " " + y1 + " q " + j + " " + k + " " + a + " " + b);
+
+
+
+            } catch {
+                undefinedEdges += "Edge " + Edge[i].id.split(' ')[0] + " -> " + Edge[i].id.split(' ')[1] + '\n';
+            }
+
+        }
+        if (undefinedEdges != "") alert("Please make sure all edges are less than 'N':\n" + undefinedEdges);
+        if (loopEdges != "") alert("Sorry loops are not supported, yet :P\n" + loopEdges);
+
+        //alert()
+    } //here
+
+
+}
+
+
+var activeElemet = document.createElement("p");
+$(document).on('mousedown', '.node', function(e) {
+    isDown = true;
+    activeElemet = this;
+    offset = [activeElemet.offsetLeft - e.clientX, activeElemet.offsetTop - e.clientY];
+    activeElemet.style.zIndex = zindx++;
+});
+
+
+//***************************************************************************************************
+// $(document).on('dblclick','.node',function(){activeElemet.style.cursor="grab";});
+// $(document).on('active','.node',function(){activeElemet.style.cursor="grabbing";});
+
+//***************************************************************************************************
+
+
+document.addEventListener('mouseup', function() {
+    isDown = false;
+    //  activeElemet.style.zIndex=4;
+    // console.log(activeElemet);
+}, true);
+
+document.addEventListener('mousemove', function(event) {
+    //event.preventDefault();
+    if (isDown) {
+        mousePosition = {
+
+            x: event.clientX,
+            y: event.clientY
+
+        };
+
+        if ((mousePosition.y + offset[0]) <= 500 && (mousePosition.y + offset[0]) >= -250) {
+
+        }
+        activeElemet.style.top = (mousePosition.y + offset[1]) + 'px';
+        activeElemet.style.left = (mousePosition.x + offset[0]) + 'px';
+        var ActiveTop = activeElemet.style.top.substr(0, activeElemet.style.top.length - 2) * 1;
+        var ActiveLeft = activeElemet.style.left.substr(0, activeElemet.style.left.length - 2) * 1;
+
+        if ((ActiveLeft) >= 800 - vertixRadius * 2) {
+            //console.log("t");
+            activeElemet.style.left = 800 - vertixRadius * 2 + "px";
+        }
+        if ((ActiveLeft) <= 0) {
+            //console.log("n");
+            activeElemet.style.left = 0 + "px";
+        }
+
+        if (ActiveTop >= 800 - vertixRadius * 2) {
+            activeElemet.style.top = 800 - vertixRadius * 2 + "px";
+        }
+        if ((ActiveTop) <= 0) {
+            //  console.log("n");
+            activeElemet.style.top = 0 + "px";
+        }
+
+        connectNodes();
+    }
+}, true);
+
+});
+
+/*************************************************************JAVASCRIPT Ends Here*************************************************************/
+  </script>
+</head>
+<body>
+  <div id="containerXL" style="width: 1000px;height: 800px; margin: 50px auto; position: relative;">
+    <div id=container  class="form-group" style="width: 800px;height: 800px; position:absolute;" >
+    </div>
+    <svg id="Canvos" width="800" height="800" style="border: 1px solid black;">
+      
+    </svg>
+    
+    <textarea style="height: 798px; width: 100px; display: block; position: absolute; top:0;left: 800px;" class="form-control mytextarea">5 10
+0 1
+1 0
+0 3
+0 4
+1 2
+1 3
+1 4
+2 3
+2 4
+3 4</textarea>
+  <div id=controls>
+
+    <input type="button" value="Create Graph" class="btn btn-primary" style="position: relative; display: inline-block;" >
+    <label for="DirectedEdges">
+      Directed Edges
+      <input type="checkbox" id=DirectedEdges>
+    </label>
+    <label for="NumericalIndexing">
+      Numerical Indexing
+      <input type="checkbox" id=NumericalIndexing checked>
+    </label>
+    <label for="IgnoreNumberOfEdges">
+      Ignore Number Of Edges
+      <input type="checkbox" id=IgnoreNumberOfEdges checked>
+    </label>
+    
+    <label>
+      wheel
+      <input type="radio" name="type" value="wheel">
+    </label><label>
+      cycle
+      <input type="radio" name="type" value="cycle">
+      
+    </label><label>
+      complete
+      <input type="radio" name="type" value="complete">
+    </label><label>
+      tree
+      <input type="radio" name="type" value="tree">
+    </label><label>
+      custom
+      <input type="radio" name="type" id=custom value="custom" checked>
+      
+    </label>
+    <label>
+      Vertix Radius
+      <input type="range" name=vertixRadius value="25" min=10 max=40 step=".1">
+    </label>
+    <label>
+      Spacing Radius
+      <input type="range" name=spacingRadius value="280" min=50 max=380 step=".1">
+    </label>
+    <label>
+      Spacing Radius
+      <input type="color">
+    </label>
+    
+  </div>
+    
+</div>
+</body>
+</html>
